@@ -102,7 +102,7 @@ jobs:
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
-   
+    
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
@@ -129,7 +129,7 @@ jobs:
         wget -r --no-parent https://cdn.jsdelivr.net/gh/immortalwrt/packages@master/net/ddns-go/
         cp -rf cdn.jsdelivr.net/gh/immortalwrt/packages@master/net/ddns-go feeds/packages/net/ddns-go/
         rm -rf cdn.jsdelivr.net
-        find feeds/packages/net/ddns-go -name index.html -exec rm {} \;    
+        find feeds/packages/net/ddns-go -name index.html -exec rm {} \;  
 
         rm -rf feeds/packages/net/frp
         wget -r --no-parent https://cdn.jsdelivr.net/gh/immortalwrt/packages@master/net/frp/
@@ -201,7 +201,10 @@ jobs:
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        
+        mkdir -p /tmp/sysupgrade_bin
+        cp *sysupgrade* /tmp/sysupgrade_bin/ 2>/dev/null || true
+        echo "FIRMWARE=/tmp/sysupgrade_bin" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware directory
