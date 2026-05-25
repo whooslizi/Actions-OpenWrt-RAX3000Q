@@ -9,3 +9,5 @@
 # File name: diy-part2.sh
 # Description: OpenWrt DIY script part 2 (After Update feeds)
 #
+sed -i 's/ImmortalWrt/RAX3000Q/g' package/base-files/files/bin/config_generate
+sed -i 's/default-settings-chn/default-settings/g' package/base-files/files/bin/config_generate 2>/dev/null || true
