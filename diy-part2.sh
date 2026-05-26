@@ -1,13 +1,18 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
+# diy-part2.sh — Post-feeds customization
 #
-# This is free software, licensed under the MIT License.
-# See /LICENSE for more information.
+# Run AFTER feeds install. Use this for additional package tweaks,
+# theme changes, or config modifications.
 #
-# https://github.com/P3TERX/Actions-OpenWrt
-# File name: diy-part2.sh
-# Description: OpenWrt DIY script part 2 (After Update feeds)
+
+set -euo pipefail
+
+echo "==> Applying post-feeds customizations..."
+
+# Example: change default theme, add packages, etc.
+# Uncomment and modify as needed:
 #
-sed -i 's/ImmortalWrt/RAX3000Q/g' package/base-files/files/bin/config_generate
-sed -i 's/default-settings-chn/default-settings/g' package/base-files/files/bin/config_generate 2>/dev/null || true
+# sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+
+echo "==> Post-feeds customization complete!"
