@@ -7,7 +7,7 @@
 # not yet upstreamed. Uses kernel 6.12+ with upstream ath11k WiFi.
 #
 
-name: Build OpenWrt (latest)
+name: Build
 
 on:
   repository_dispatch:
