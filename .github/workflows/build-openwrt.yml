@@ -107,9 +107,9 @@ jobs:
       run: cd openwrt && ./scripts/feeds install -a
 
     - name: Upgrade C-based network packages
-      # Only natmap and smartdns here — ddns-go and frp are Go-based and
-      # require Go 1.25 which kenzok8/golang does not yet provide (stuck at 1.24).
-      # Adding them back will break the build.
+      # Only natmap here — ddns-go and frp need Go 1.25 (unavailable),
+      # smartdns latest version requires Rust, also unavailable.
+      # Adding any of them back will break the build.
       run: |
         cd openwrt
         git clone --depth 1 https://github.com/immortalwrt/packages.git /tmp/im-packages
@@ -117,8 +117,6 @@ jobs:
         rm -rf feeds/packages/net/natmap
         cp -rf /tmp/im-packages/net/natmap feeds/packages/net/natmap
 
-        rm -rf feeds/packages/net/smartdns
-        cp -rf /tmp/im-packages/net/smartdns feeds/packages/net/smartdns
 
         rm -rf /tmp/im-packages
 
