@@ -1,10 +1,10 @@
 #
-# Build ImmortalWrt for CMCC RAX3000Q (Qualcomm IPQ50xx / Linux 5.4-QSDK)
+# Build OpenWrt for CMCC RAX3000Q (Qualcomm IPQ5018 / qualcommax)
 # Based on P3TERX/Actions-OpenWrt
 #
-# NOTE: There is no pure-OpenWrt repo for IPQ50xx hardware.
-# kkstone/immortalwrt-ipq50xx is the only maintained source for this device.
-# ImmortalWrt is OpenWrt + ~5 extra packages — effectively identical.
+# Builds from the official OpenWrt repo (latest master).
+# RAX3000Q device support is injected via diy-part1.sh since it's
+# not yet upstreamed. Uses kernel 6.12+ with upstream ath11k WiFi.
 #
 
 name: Build OpenWrt
@@ -20,8 +20,8 @@ on:
         type: boolean
 
 env:
-  REPO_URL: https://github.com/kkstone/immortalwrt-ipq50xx
-  REPO_BRANCH: openwrt-21.02
+  REPO_URL: https://github.com/openwrt/openwrt
+  REPO_BRANCH: main
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -37,11 +37,11 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
 
     - name: Free Disk Space
       uses: jlumbroso/free-disk-space@main
@@ -60,13 +60,13 @@ jobs:
       run: |
         sudo -E apt-get update
         sudo -E apt-get install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison \
-          build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk \
+          build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk \
           gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 \
-          libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev \
-          libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz mkisofs \
-          msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pip \
+          libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev \
+          libncurses-dev libreadline-dev libssl-dev libtool lrzsz mkisofs \
+          msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip \
           libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo \
-          uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+          uglifyjs unzip vim wget xmlto xxd zlib1g-dev zstd
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
@@ -75,14 +75,14 @@ jobs:
       working-directory: /workdir
       run: |
         df -hT $PWD
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
+        git clone $REPO_URL -b $REPO_BRANCH --single-branch --depth 1 openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: Enable build ccache
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'immortalwrt21-cortexa7-vfpv4'
+        mixkey: 'openwrt-qualcommax-ipq50xx'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: Load custom feeds
@@ -97,33 +97,8 @@ jobs:
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
-    - name: Fix golang version
-      run: |
-        cd openwrt
-        rm -rf feeds/packages/lang/golang
-        git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
-
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
-
-    - name: Upgrade C-based network packages
-      # Only natmap here — ddns-go and frp need Go 1.25 (unavailable),
-      # smartdns latest version requires Rust, also unavailable.
-      # Adding any of them back will break the build.
-      run: |
-        cd openwrt
-        git clone --depth 1 https://github.com/immortalwrt/packages.git /tmp/im-packages
-
-        rm -rf feeds/packages/net/natmap
-        cp -rf /tmp/im-packages/net/natmap feeds/packages/net/natmap
-
-
-        rm -rf /tmp/im-packages
-
-        wget "https://www.dropbox.com/scl/fi/uccikbibj772c4sekzbk7/luci-app-turboacc.zip?rlkey=yzhkk0lfzhrthn8hbl1qt8k5j&st=31820445&dl=1" -O luci-app-turboacc.zip
-        rm -rf feeds/luci/applications/luci-app-turboacc
-        unzip luci-app-turboacc.zip -d feeds/luci/applications/
-        rm -rf luci-app-turboacc.zip
 
     - name: Load custom configuration
       run: |
@@ -139,15 +114,6 @@ jobs:
       env:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-
-    - name: Pre-download QSDK kernel sources
-      run: |
-        cd openwrt
-        mkdir -p dl
-        wget "https://www.dropbox.com/scl/fi/9ts30p2csnlb9imaf8k68/backports-20210222-5.4-qsdk-11.5.0.5.tar.xz?rlkey=sntbyfjgg86gu2uoocgb9ggp1&st=7w81hl56&dl=1" \
-          -O dl/backports-20210222-5.4-qsdk-11.5.0.5.tar.xz
-        wget "https://www.dropbox.com/scl/fi/gu7ge6jmefn72ttuop1zs/linux-5.4-qsdk-11.5.0.5.tar.xz?rlkey=tdpq0ye35x290frbh7i8uqrm8&st=jjvegqrr&dl=1" \
-          -O dl/linux-5.4-qsdk-11.5.0.5.tar.xz
 
     - name: Download packages
       run: |
@@ -182,7 +148,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware directory
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
@@ -194,12 +160,12 @@ jobs:
       run: |
         echo "release_tag=RAX3000Q-$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "RAX3000Q ImmortalWrt build — $(date)" >> release.txt
-        echo "Kernel: Linux 5.4-QSDK | NSS Wi-Fi + NAT enabled | IPv6 enabled" >> release.txt
+        echo "RAX3000Q OpenWrt (latest main) — $(date)" >> release.txt
+        echo "Kernel: Linux 6.12+ | upstream ath11k WiFi | IPv6 enabled" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: steps.tag.outputs.status == 'success' && !cancelled()
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
